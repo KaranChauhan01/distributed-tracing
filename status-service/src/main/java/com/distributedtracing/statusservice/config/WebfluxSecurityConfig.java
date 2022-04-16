@@ -84,11 +84,10 @@ public class WebfluxSecurityConfig {
           .just(exchangeResponse)
           .flatMap((response) -> {
             log.error(
-                """
-                    Url: {}
-                    ReasonCode: {}
-                    Reason: {}
-                    Tracer: {}""",
+                    "Url: {}" +
+                    "\nReasonCode: {}" +
+                    "\nReason: {}" +
+                    "\nTracer: {}",
                 url, status, exceptionMessage, tracer
             );
             response.setStatusCode(status);

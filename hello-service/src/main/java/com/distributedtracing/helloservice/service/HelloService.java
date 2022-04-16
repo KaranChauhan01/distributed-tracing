@@ -61,6 +61,7 @@ public class HelloService {
               String logMessage = "\nStatusCode: {} \nExecution time: {} milliseconds \nTracer: {}";
               if(response.statusCode().is4xxClientError()) {
                 log.error("Call to /api/v1/fail endpoint failed." + logMessage, response.statusCode(), (currentTime - failureStartTime), tracer);
+                return Mono.just(new ResponseMessage());
               } else if(response.statusCode().is2xxSuccessful())
                 log.debug("Call to /api/v1/fail endpoint completed." + logMessage, response.statusCode(), (currentTime - failureStartTime), tracer);
               return response.bodyToMono(ResponseMessage.class);
