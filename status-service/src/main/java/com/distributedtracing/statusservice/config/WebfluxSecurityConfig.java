@@ -1,5 +1,6 @@
 package com.distributedtracing.statusservice.config;
 
+import com.distributedtracing.statusservice.util.LogHelper;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +20,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
+import java.util.UUID;
+
+import static com.distributedtracing.statusservice.model.Constants.CONTEXT_MAP;
+import static com.distributedtracing.statusservice.model.Constants.TRACER;
 
 @EnableWebFluxSecurity
 @Slf4j
@@ -75,7 +82,7 @@ public class WebfluxSecurityConfig {
     if(!tracerHeader.isEmpty())
       tracer = tracerHeader.get(0);
     else
-      tracer = "";
+      tracer = UUID.randomUUID().toString();
     return tracer;
   }
 
@@ -83,20 +90,21 @@ public class WebfluxSecurityConfig {
     return Mono.defer(() -> Mono
           .just(exchangeResponse)
           .flatMap((response) -> {
-            log.error(
-                    "Url: {}" +
-                    "\nReasonCode: {}" +
-                    "\nReason: {}" +
-                    "\nTracer: {}",
-                url, status, exceptionMessage, tracer
-            );
             response.setStatusCode(status);
             response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
             DataBufferFactory dataBufferFactory = response.bufferFactory();
             String s = "{\"message\": \"" + exceptionMessage + "\"}";
             DataBuffer buffer = dataBufferFactory.wrap(s.getBytes());
             return response.writeWith(Mono.just(buffer)).doOnError((error) -> DataBufferUtils.release(buffer));
-          }));
+          })).doOnEach(LogHelper.logOnComplete(
+              res -> log.error(
+                    "Url: {}" +
+                    "\nReasonCode: {}" +
+                    "\nReason: {}" +
+                    "\nTracer: {}",
+                url, status, exceptionMessage, tracer
+            )
+          )).contextWrite(ctx -> ctx.put(CONTEXT_MAP, Map.of(TRACER, tracer)));
   }
 
 
